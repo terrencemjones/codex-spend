@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 
-const { createServer } = require('./server');
-
 const args = process.argv.slice(2);
 
 if (args.includes('--help') || args.includes('-h')) {
   console.log(`
-claude-spend - See where your Claude Code tokens go
+claude-spend - See where your Codex tokens go
 
 Usage:
   claude-spend [options]
@@ -32,6 +30,7 @@ if (isNaN(port)) {
   process.exit(1);
 }
 
+const { createServer } = require('./server');
 const app = createServer();
 
 const server = app.listen(port, async () => {

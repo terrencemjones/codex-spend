@@ -1,7 +1,7 @@
 {
   "name": "claude-spend",
   "version": "1.0.0",
-  "description": "See where your Claude Code tokens go. One command, zero setup.",
+  "description": "See where your Codex tokens go. One command, zero setup.",
   "main": "src/index.js",
   "bin": {
     "claude-spend": "src/index.js"
@@ -10,8 +10,8 @@
     "start": "node src/index.js"
   },
   "keywords": [
-    "claude",
-    "claude-code",
+    "codex",
+    "openai-codex",
     "tokens",
     "usage",
     "analytics",

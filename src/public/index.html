@@ -502,7 +502,7 @@
 
 <div id="loading" class="loading">
   <div class="spinner"></div>
-  <div class="loading-text">Reading your Claude Code sessions...</div>
+  <div class="loading-text">Reading your Codex sessions...</div>
 </div>
 
 <div id="app" class="container" style="display:none">
@@ -531,7 +531,7 @@
 
   <!-- Value proposition -->
   <div class="hero-section animate delay-1">
-    <h2 class="hero-title">Your Claude Code usage, visualized.</h2>
+    <h2 class="hero-title">Your Codex usage, visualized.</h2>
     <p class="hero-subtitle">See where your tokens actually go.</p>
   </div>
 
@@ -555,11 +555,11 @@
   <!-- Charts -->
   <div class="charts-grid animate delay-3">
     <div class="chart-card">
-      <h3 class="has-tooltip has-tooltip-below" style="display:inline-block">Tokens per Day<div class="tooltip">How many tokens you used each day. Taller bars mean heavier usage days. The indigo portion is what Claude read, the teal is what Claude wrote.</div></h3>
+      <h3 class="has-tooltip has-tooltip-below" style="display:inline-block">Tokens per Day<div class="tooltip">How many tokens you used each day. Taller bars mean heavier usage days. The indigo portion is model input, the teal is model output.</div></h3>
       <canvas id="dailyChart"></canvas>
       <div class="legend">
-        <div class="legend-item"><div class="legend-dot" style="background:var(--indigo)"></div> Read by Claude (your messages + context)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--teal)"></div> Written by Claude (responses)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--indigo)"></div> Read by model (your messages + context)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--teal)"></div> Written by model (responses)</div>
       </div>
     </div>
     <div class="chart-card">
@@ -575,7 +575,7 @@
       <div class="section-icon" style="background:linear-gradient(135deg,#E0E7FF,#C7D2FE)">
         <svg viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2.5" stroke-linecap="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
       </div>
-      <div class="section-title has-tooltip has-tooltip-below" style="display:inline-flex">Most Expensive Prompts<div class="tooltip">Your top 20 individual messages ranked by how many tokens they used. Short vague messages like "Yes" often rank highest because they trigger long chains of tool calls where Claude tries to figure out what you meant.</div></div>
+      <div class="section-title has-tooltip has-tooltip-below" style="display:inline-flex">Most Expensive Prompts<div class="tooltip">Your top 20 individual messages ranked by token usage. Short vague prompts often rank highest because they trigger longer tool-assisted runs.</div></div>
     </div>
     <div class="prompts-card" id="topPromptsList"></div>
   </div>
@@ -610,11 +610,11 @@
           <tr>
             <th data-sort="date">Date</th>
             <th data-sort="prompt">What you asked</th>
-            <th data-sort="model" class="has-tooltip has-tooltip-below">Model<div class="tooltip">Which AI model was used. Opus is the most capable (and uses more tokens), Sonnet is faster and lighter.</div></th>
-            <th data-sort="queries" style="text-align:right" class="has-tooltip has-tooltip-below">Messages<div class="tooltip">How many back-and-forth messages happened in this conversation, including automatic tool calls Claude made.</div></th>
-            <th data-sort="total" style="text-align:right" class="sorted has-tooltip has-tooltip-below">Total tokens<div class="tooltip">The total number of tokens used in this conversation. Higher means more expensive. Long conversations cost more because Claude re-reads everything each turn.</div></th>
-            <th data-sort="input" style="text-align:right" class="has-tooltip has-tooltip-below">Read<div class="tooltip">Tokens Claude read: your messages, the conversation history, files, and system context. This grows with each message because the full history gets re-sent.</div></th>
-            <th data-sort="output" style="text-align:right" class="has-tooltip has-tooltip-below">Written<div class="tooltip">Tokens Claude wrote back: responses, code, explanations. Usually a small fraction of the total.</div></th>
+            <th data-sort="model" class="has-tooltip has-tooltip-below">Model<div class="tooltip">Which model handled most of this conversation.</div></th>
+            <th data-sort="queries" style="text-align:right" class="has-tooltip has-tooltip-below">Messages<div class="tooltip">How many model calls happened in this session, including tool-driven steps.</div></th>
+            <th data-sort="total" style="text-align:right" class="sorted has-tooltip has-tooltip-below">Total tokens<div class="tooltip">The total number of tokens used in this conversation. Higher means more expensive. Long conversations cost more because context keeps growing each turn.</div></th>
+            <th data-sort="input" style="text-align:right" class="has-tooltip has-tooltip-below">Read<div class="tooltip">Input tokens the model read: prompts, conversation history, files, and system context.</div></th>
+            <th data-sort="output" style="text-align:right" class="has-tooltip has-tooltip-below">Written<div class="tooltip">Output tokens returned by the model.</div></th>
           </tr>
         </thead>
         <tbody id="sessionsBody"></tbody>
@@ -623,7 +623,7 @@
   </div>
 
   <div class="footer">
-    Made with <a href="https://claude.ai/code" target="_blank">Claude Code</a> and &#10084; by <a href="https://www.linkedin.com/in/aniketparihar/" target="_blank">Aniket</a>
+    Made for Codex by <a href="https://www.linkedin.com/in/aniketparihar/" target="_blank">Aniket</a>
   </div>
 </div>
 
@@ -641,19 +641,29 @@ function fmt(n) {
 function fmtFull(n) { return n.toLocaleString(); }
 
 function modelClass(m) {
-  if (m.includes('opus')) return 'model-opus';
-  if (m.includes('sonnet')) return 'model-sonnet';
-  if (m.includes('haiku')) return 'model-haiku';
+  const model = (m || '').toLowerCase();
+  if (model.includes('gpt-5')) return 'model-opus';
+  if (model.includes('gpt-4')) return 'model-sonnet';
+  if (model.includes('o3') || model.includes('o4')) return 'model-haiku';
   return 'model-unknown';
 }
 function modelShort(m) {
-  if (m.includes('opus')) return 'Opus';
-  if (m.includes('sonnet')) return 'Sonnet';
-  if (m.includes('haiku')) return 'Haiku';
-  return m;
+  const model = (m || '').toLowerCase();
+  if (model.includes('gpt-5')) return 'GPT-5';
+  if (model.includes('gpt-4.1')) return 'GPT-4.1';
+  if (model.includes('gpt-4o')) return 'GPT-4o';
+  if (model.includes('gpt-4')) return 'GPT-4';
+  if (model.includes('o3')) return 'o3';
+  if (model.includes('o4')) return 'o4';
+  return m || 'Unknown';
 }
 function projectShort(p) {
-  return p.replace(/^C--Users-[^-]+-?/, '').replace(/^Projects-?/, '').replace(/-/g, '/') || '~';
+  if (!p) return '~';
+  const normalized = p.replace(/\\/g, '/');
+  const parts = normalized.split('/').filter(Boolean);
+  if (parts.length === 0) return normalized || '~';
+  if (parts.length === 1) return parts[0];
+  return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
 }
 function escapeHtml(s) {
   const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
@@ -695,14 +705,14 @@ function renderStats() {
   document.getElementById('dateRange').textContent = range;
 
   const cards = [
-    { label: 'Total Usage', value: fmt(t.totalTokens), sub: `${fmt(t.totalInputTokens)} read by Claude + ${fmt(t.totalOutputTokens)} written back`,
-      tip: 'The total number of tokens used across all your conversations. This includes everything Claude reads (your messages, conversation history, files) plus everything Claude writes back.' },
+    { label: 'Total Usage', value: fmt(t.totalTokens), sub: `${fmt(t.totalInputTokens)} read by model + ${fmt(t.totalOutputTokens)} written back`,
+      tip: 'The total number of tokens used across all your conversations. This includes model input plus model output.' },
     { label: 'Conversations', value: fmtFull(t.totalSessions), sub: `Each one used ~${fmt(t.avgTokensPerSession)} tokens on average`,
-      tip: 'Each time you start Claude Code and begin chatting, that counts as one conversation. A new conversation starts fresh with no prior context.' },
-    { label: 'Messages Sent', value: fmtFull(t.totalQueries), sub: `Each message cost ~${fmt(t.avgTokensPerQuery)} tokens on average`,
-      tip: 'Every time you hit Enter and send something to Claude, that is one message. This includes follow-up tool calls Claude makes automatically behind the scenes.' },
-    { label: 'Claude Wrote', value: fmt(t.totalOutputTokens), sub: `Only ${((t.totalOutputTokens / Math.max(t.totalTokens, 1)) * 100).toFixed(1)}% of total -- most usage is from re-reading context`,
-      tip: 'The tokens Claude spent writing responses, code, and explanations. This is usually a tiny fraction of total usage because most tokens go toward re-reading your conversation history.' },
+      tip: 'Each Codex session starts with fresh state and grows as context accumulates.' },
+    { label: 'Model Calls', value: fmtFull(t.totalQueries), sub: `Each call cost ~${fmt(t.avgTokensPerQuery)} tokens on average`,
+      tip: 'A call is one model step. Tool activity can trigger extra calls behind the scenes.' },
+    { label: 'Model Output', value: fmt(t.totalOutputTokens), sub: `Only ${((t.totalOutputTokens / Math.max(t.totalTokens, 1)) * 100).toFixed(1)}% of total -- most usage is input/context`,
+      tip: 'Output tokens are what the model wrote back. Most spend usually comes from input/context.' },
   ];
 
   document.getElementById('statsRow').innerHTML = cards.map((c, i) => `
@@ -840,9 +850,12 @@ function renderModelChart() {
   const cx = size/2, cy = size/2, r = size/2 - 6, innerR = r * 0.6;
   const total = data.reduce((s, d) => s + d.totalTokens, 0);
 
-  const modelColors = { opus: ['#6366F1','#818CF8'], sonnet: ['#10B981','#34D399'], haiku: ['#F97316','#FB923C'] };
+  const modelColors = { gpt5: ['#6366F1','#818CF8'], gpt4: ['#10B981','#34D399'], reasoning: ['#F97316','#FB923C'] };
   function getColors(m) {
-    for (const [k, c] of Object.entries(modelColors)) { if (m.includes(k)) return c; }
+    const model = (m || '').toLowerCase();
+    if (model.includes('gpt-5')) return modelColors.gpt5;
+    if (model.includes('gpt-4')) return modelColors.gpt4;
+    if (model.includes('o3') || model.includes('o4')) return modelColors.reasoning;
     return ['#94A3B8','#CBD5E1'];
   }
 
